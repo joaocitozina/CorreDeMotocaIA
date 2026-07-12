@@ -48,6 +48,10 @@ class Lancamento:
         descricao: texto livre descrevendo o lançamento (ex: "Troca de óleo").
         valor: valor em reais, sempre positivo — o sinal (+/-) é definido
             pela `natureza`, não pelo valor em si.
+        aplicativo: nome do app de entrega que gerou o ganho (ex: "iFood",
+            "Rappi"). Só faz sentido em lançamentos de ENTRADA/CORRIDA —
+            fica None em gastos (pessoal/manutenção), já que "app de
+            origem" não se aplica a uma despesa.
         data_registro: quando o lançamento foi criado.
     """
 
@@ -57,6 +61,7 @@ class Lancamento:
     descricao: str
     valor: float
     id: Optional[int] = None
+    aplicativo: Optional[str] = None
     data_registro: Optional[datetime] = None
 
     def eh_entrada(self) -> bool:

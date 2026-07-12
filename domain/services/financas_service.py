@@ -19,9 +19,20 @@ class FinancasService:
     def __init__(self, lancamento_repository: LancamentoRepository = None):
         self._lancamento_repository = lancamento_repository or LancamentoRepository()
 
-    def registrar_ganho(self, usuario_id: int, descricao: str, valor_texto: str) -> Lancamento:
-        """Registra uma corrida/ganho para o usuário."""
-        return self._registrar(usuario_id, Natureza.ENTRADA, Categoria.CORRIDA, descricao, valor_texto)
+    def registrar_ganho(
+        self, usuario_id: int, descricao: str, valor_texto: str, aplicativo: Optional[str] = None,
+    ) -> Lancamento:
+        """
+        Registra uma corrida/ganho para o usuário.
+
+        `aplicativo` é opcional (ex: "iFood", "Rappi") e identifica de
+        qual app veio o ganho — usado depois por `obter_ganhos_por_app`
+        para montar o gráfico da tela de Ganhos Detalhados. Quando não
+        informado, o ganho aparece agrupado como "Outros" nesse relatório.
+        """
+        return self._registrar(
+            usuario_id, Natureza.ENTRADA, Categoria.CORRIDA, descricao, valor_texto, aplicativo,
+        )
 
     def registrar_gasto_pessoal(self, usuario_id: int, descricao: str, valor_texto: str) -> Lancamento:
         """Registra um gasto pessoal (alimentação, aluguel, etc.)."""
@@ -33,7 +44,7 @@ class FinancasService:
 
     def _registrar(
         self, usuario_id: int, natureza: Natureza, categoria: Categoria,
-        descricao: str, valor_texto: str,
+        descricao: str, valor_texto: str, aplicativo: Optional[str] = None,
     ) -> Lancamento:
         descricao_limpa, valor_numerico = validar_lancamento(natureza, categoria, descricao, valor_texto)
 
@@ -43,6 +54,7 @@ class FinancasService:
             categoria=categoria,
             descricao=descricao_limpa,
             valor=valor_numerico,
+            aplicativo=aplicativo,
         )
         return self._lancamento_repository.salvar(lancamento)
 
@@ -64,3 +76,21 @@ class FinancasService:
         gasto (por categoria) e saldo final.
         """
         return self._lancamento_repository.calcular_totais(usuario_id)
+
+    def obter_ganhos_por_app(self, usuario_id: int, periodo: Optional[str] = None) -> dict:
+        """
+        Ponte entre a Presentation (GanhosView) e o Repositório: retorna
+        os ganhos já agrupados e somados por aplicativo, prontos para
+        alimentar o gráfico e a listagem detalhada.
+
+        Este serviço não faz nenhuma conta por conta própria — a
+        agregação (SUM/GROUP BY) já vem pronta do
+        `LancamentoRepository.obter_ganhos_por_app`. A camada de Domain
+        só existe aqui como um ponto único de entrada para a
+        Presentation, mantendo a regra de que Views nunca falam
+        diretamente com Repositories.
+
+        `periodo` aceita "diario", "semanal", "mensal" ou None (todo o
+        histórico) — repassado direto para o repositório.
+        """
+        return self._lancamento_repository.obter_ganhos_por_app(usuario_id, periodo)

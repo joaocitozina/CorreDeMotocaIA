@@ -14,6 +14,16 @@ from presentation.components.financeiro_widgets import formatar_moeda
 from presentation.components.widgets import CampoTexto, criar_botao_primario, criar_mensagem_status, criar_titulo
 from presentation.theme import colors, styles
 
+# Tabela de referência de consumo médio por modelo de moto popular
+# entre motoboys de aplicativo — valores aproximados de mercado, só
+# para orientar o preenchimento do campo "Consumo da moto (km/l)".
+_REFERENCIA_CONSUMO_MOTOS = (
+    ("Honda CG 160", "~35 a 40 km/L"),
+    ("Honda Biz 125", "~45 a 50 km/L"),
+    ("Yamaha YBR 150 Factor", "~38 a 42 km/L"),
+    ("Honda XRE 190", "~30 a 35 km/L"),
+)
+
 
 class SimulacaoView(ctk.CTkFrame):
     def __init__(self, master):
@@ -71,6 +81,7 @@ class SimulacaoView(ctk.CTkFrame):
         botao_simular.pack(fill="x")
 
         self._construir_resultado(area_rolavel)
+        self._construir_tabela_referencia_consumo(area_rolavel)
 
     def _construir_resultado(self, master) -> None:
         self._card_resultado = ctk.CTkFrame(
@@ -128,3 +139,49 @@ class SimulacaoView(ctk.CTkFrame):
         )
 
         self._card_resultado.pack(fill="x")
+
+    def _construir_tabela_referencia_consumo(self, master) -> None:
+        """
+        Frame estático (não interativo) com uma tabela de referência de
+        consumo médio por modelo de moto — só para ajudar o motoboy a
+        preencher o campo "Consumo da moto (km/l)" do formulário acima
+        com um valor realista, caso ele não saiba de cabeça.
+
+        É estático de propósito: não precisa de banco de dados nem de
+        lógica nenhuma, é só uma tabela de referência de mercado.
+        """
+        card = ctk.CTkFrame(master, fg_color=colors.FUNDO_SECUNDARIO, corner_radius=styles.RAIO_CARD)
+        card.pack(fill="x", pady=(styles.ESPACO_GRANDE, 0))
+
+        conteudo = ctk.CTkFrame(card, fg_color="transparent")
+        conteudo.pack(fill="both", expand=True, padx=styles.ESPACO_MEDIO, pady=styles.ESPACO_MEDIO)
+
+        ctk.CTkLabel(
+            conteudo, text="📋 Consumo médio de referência", font=(styles.FONTE_FAMILIA, 15, "bold"),
+            text_color=colors.TEXTO_PRINCIPAL, anchor="w",
+        ).pack(fill="x")
+
+        ctk.CTkLabel(
+            conteudo, text="Não sabe o consumo da sua moto? Use esta tabela como ponto de partida.",
+            font=styles.FONTE_ERRO, text_color=colors.TEXTO_SECUNDARIO, anchor="w", justify="left",
+        ).pack(fill="x", pady=(0, styles.ESPACO_MEDIO))
+
+        for modelo, faixa_consumo in _REFERENCIA_CONSUMO_MOTOS:
+            linha = ctk.CTkFrame(conteudo, fg_color="transparent")
+            linha.pack(fill="x", pady=3)
+
+            ctk.CTkLabel(
+                linha, text=f"🏍️  {modelo}", font=styles.FONTE_TEXTO,
+                text_color=colors.TEXTO_PRINCIPAL, anchor="w",
+            ).pack(side="left")
+
+            ctk.CTkLabel(
+                linha, text=faixa_consumo, font=(styles.FONTE_FAMILIA, 13, "bold"),
+                text_color=colors.LARANJA_VIBRANTE, anchor="e",
+            ).pack(side="right")
+
+            # Linha divisória sutil entre um modelo e outro, exceto a
+            # última — dá uma organização visual de "tabela" sem
+            # precisar montar um Treeview ou grid mais complexo.
+            if (modelo, faixa_consumo) != _REFERENCIA_CONSUMO_MOTOS[-1]:
+                ctk.CTkFrame(conteudo, fg_color=colors.BORDA, height=1).pack(fill="x", pady=(3, 0))

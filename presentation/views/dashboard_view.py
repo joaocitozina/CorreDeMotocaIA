@@ -13,8 +13,25 @@ from domain.entities.usuario import Usuario
 from domain.exceptions.lancamento_exceptions import LancamentoException
 from domain.services.financas_service import FinancasService
 from presentation.components.financeiro_widgets import BarraProgressoCategoria, CardValor
-from presentation.components.widgets import CampoTexto, criar_botao_primario, criar_mensagem_status, criar_titulo
+from presentation.components.widgets import (
+    CampoTexto,
+    ComboboxCampo,
+    criar_botao_primario,
+    criar_mensagem_status,
+    criar_titulo,
+)
 from presentation.theme import colors, styles
+
+# Opções padrão de descrição do registro rápido de corrida — trocamos o
+# campo de texto livre por um combobox fechado (Etapa 5) para tornar o
+# lançamento mais rápido e evitar descrições digitadas de forma
+# inconsistente (ex: "corrida ifood", "Corrida IFOOD", "corr. ifood"...).
+_OPCOES_DESCRICAO_RAPIDA = [
+    "Corrida iFood - Centro",
+    "Corrida Particular",
+    "Gorjeta",
+    "Cancelamento de Pedido",
+]
 
 
 class DashboardView(ctk.CTkFrame):
@@ -94,7 +111,9 @@ class DashboardView(ctk.CTkFrame):
         linha_campos.grid_columnconfigure(0, weight=2)
         linha_campos.grid_columnconfigure(1, weight=1)
 
-        self._campo_descricao = CampoTexto(linha_campos, rotulo="Descrição", placeholder="Ex: Corrida iFood - Centro")
+        self._campo_descricao = ComboboxCampo(
+            linha_campos, rotulo="Descrição", valores=_OPCOES_DESCRICAO_RAPIDA,
+        )
         self._campo_descricao.grid(row=0, column=0, sticky="ew", padx=(0, styles.ESPACO_PEQUENO))
 
         self._campo_valor = CampoTexto(linha_campos, rotulo="Valor recebido", placeholder="Ex: 18,50")
@@ -132,7 +151,11 @@ class DashboardView(ctk.CTkFrame):
                 descricao=self._campo_descricao.get(),
                 valor_texto=self._campo_valor.get(),
             )
-            self._campo_descricao.entry.delete(0, "end")
+            # O combobox de descrição não precisa ser "limpo" como um
+            # campo de texto (delete/insert) — como é uma lista fechada
+            # de opções, só voltamos para a primeira opção como padrão,
+            # deixando pronto para o próximo registro rápido.
+            self._campo_descricao.combobox.set(_OPCOES_DESCRICAO_RAPIDA[0])
             self._campo_valor.entry.delete(0, "end")
             self._carregar_resumo()
         except LancamentoException as erro:

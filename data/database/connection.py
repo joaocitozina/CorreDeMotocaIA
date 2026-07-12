@@ -123,10 +123,35 @@ class DatabaseConnection:
                     categoria TEXT NOT NULL CHECK (categoria IN ('corrida', 'pessoal', 'manutencao')),
                     descricao TEXT NOT NULL,
                     valor REAL NOT NULL CHECK (valor > 0),
+                    aplicativo TEXT,
                     data_registro TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
                     FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE CASCADE
                 )
             """)
+            # Bancos criados ANTES desta correção não têm a coluna
+            # `aplicativo` (ela não existia no CREATE TABLE original).
+            # O "CREATE TABLE IF NOT EXISTS" acima só afeta bancos novos,
+            # então esta migração explícita garante que o SEU banco atual
+            # (que já está com dados persistidos) ganhe a coluna nova sem
+            # perder nenhum lançamento já registrado.
+            self._adicionar_coluna_se_nao_existir(cursor, "lancamentos", "aplicativo", "TEXT")
+
+    @staticmethod
+    def _adicionar_coluna_se_nao_existir(cursor, tabela: str, coluna: str, tipo_sql: str) -> None:
+        """
+        Adiciona uma coluna a uma tabela já existente, sem quebrar caso
+        ela já tenha sido adicionada em uma execução anterior do app.
+
+        Consultamos `PRAGMA table_info` (o "describe table" do SQLite)
+        em vez de simplesmente tentar o ALTER TABLE e capturar o erro —
+        fica mais explícito sobre a intenção e evita depender do texto
+        exato da mensagem de erro do driver.
+        """
+        cursor.execute(f"PRAGMA table_info({tabela})")
+        colunas_existentes = {linha["name"] for linha in cursor.fetchall()}
+
+        if coluna not in colunas_existentes:
+            cursor.execute(f"ALTER TABLE {tabela} ADD COLUMN {coluna} {tipo_sql}")
 
 
 # Instância única (singleton simples) compartilhada pela aplicação.

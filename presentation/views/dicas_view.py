@@ -92,12 +92,31 @@ class DicasDoDiaView(ctk.CTkFrame):
         """
         Executa em background: nunca mexe em widgets diretamente aqui,
         só agenda a atualização via `self.after(0, ...)` na thread principal.
+
+        CORREÇÃO DE BUG (Etapa 5): a variável capturada em `except X as
+        erro:` é automaticamente apagada pelo Python assim que o bloco
+        `except` termina — é um comportamento proposital do CPython para
+        evitar ciclos de referência (a exceção guarda um traceback, que
+        por sua vez referencia o frame local, criando um ciclo se a
+        variável não fosse limpa). Isso não dá problema em código
+        síncrono, porque a variável já foi usada e descartada antes do
+        bloco terminar. Mas aqui a mensagem era usada dentro de uma
+        `lambda` passada para `self.after(0, ...)` — que só executa
+        DEPOIS, quando o `except` já encerrou e `erro` já não existe
+        mais. Resultado: 'NameError: cannot access free variable erro'
+        na hora em que o Tkinter finalmente chama a lambda.
+        A correção é simples: copiar o que precisamos de `erro` (o
+        texto da mensagem, via `str(erro)`) para uma variável comum
+        ANTES de sair do bloco except. Uma variável comum não é
+        apagada automaticamente, então a lambda consegue capturá-la
+        normalmente.
         """
         try:
             condicao = buscar_clima_atual(self._usuario.cidade, self._usuario.estado_uf)
             self.after(0, lambda: self._exibir_clima(condicao))
         except ClimaIndisponivelException as erro:
-            self.after(0, lambda: self._exibir_clima_indisponivel(str(erro)))
+            mensagem_erro = str(erro)  # captura o texto ANTES de 'erro' ser apagado
+            self.after(0, lambda: self._exibir_clima_indisponivel(mensagem_erro))
 
     def _exibir_clima(self, condicao) -> None:
         icone = _ICONE_POR_CATEGORIA.get(condicao.categoria, "🌤️")
