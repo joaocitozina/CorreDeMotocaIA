@@ -1,0 +1,14 @@
+# Ambientes Virtuais (Pastas pesadas que o pip instala)
+.venv/
+.venv312/
+venv/
+ENV/
+
+# Caches do Python e do PyCharm
+__pycache__/
+*.pyc
+.idea/
+
+# Banco de dados local (Para não enviar seus dados de teste)
+*.db
+*.sqlite3

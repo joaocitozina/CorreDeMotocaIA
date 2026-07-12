@@ -1,0 +1,9 @@
+customtkinter==5.2.2
+matplotlib==3.9.2
+bcrypt==4.2.0
+requests==2.32.3
+
+# Opcional: só é necessária se você configurar GEMINI_API_KEY para usar
+# o modo real de geração de dicas por IA. Sem essa variável de ambiente,
+# o app funciona 100% no modo simulado/gratuito e esta lib nem é importada.
+google-generativeai==0.8.3
