@@ -48,7 +48,26 @@ class LoginView(ctk.CTkFrame):
         self._construir_interface()
 
     def _construir_interface(self) -> None:
-        """Monta todos os widgets da tela, centralizados verticalmente."""
+        """
+        Monta todos os widgets da tela, centralizados vertical e
+        horizontalmente.
+
+        CORREÇÃO DE LAYOUT (Etapa 4): a versão anterior fixava o card
+        com `card.configure(height=430)` + `card.pack_propagate(False)`.
+        Isso força TODO o conteúdo (título, subtítulo, 2 campos, erro,
+        botão, link) a caber num espaço rígido de 430px — e quando o
+        conteúdo real precisa de mais altura (por exemplo, quando a
+        mensagem de erro aparece), o `pack()` comprime os ÚLTIMOS
+        widgets adicionados para tentar caber, fazendo o botão "Entrar"
+        virar uma linha esmagada e empurrando o link de cadastro para
+        fora da área visível (clipping).
+
+        A correção é simples: NUNCA travar a altura de um container que
+        tem conteúdo dinâmico. Deixamos o card crescer livremente (sem
+        `pack_propagate(False)` e sem `height` fixo) — só a LARGURA
+        continua fixa, que é puramente estética e não depende de texto
+        variável.
+        """
         container_central = ctk.CTkFrame(self, fg_color="transparent")
         container_central.place(relx=0.5, rely=0.5, anchor="center")
 
@@ -58,44 +77,47 @@ class LoginView(ctk.CTkFrame):
             corner_radius=styles.RAIO_CARD,
             width=styles.LARGURA_CARD,
         )
-        card.pack()
-        # Bloqueia o "encolhimento" automático do frame para manter a
-        # largura consistente, independentemente do conteúdo interno.
-        card.pack_propagate(False)
-        card.configure(height=430)
+        card.pack(fill="y")
+        # Sem pack_propagate(False) e sem height fixo: o card agora
+        # cresce em altura de acordo com o próprio conteúdo interno,
+        # nunca mais espremendo os widgets do final da tela.
 
-        conteudo = ctk.CTkFrame(card, fg_color="transparent")
+        conteudo = ctk.CTkFrame(card, fg_color="transparent", width=styles.LARGURA_CARD)
         conteudo.pack(fill="both", expand=True, padx=styles.ESPACO_GRANDE, pady=styles.ESPACO_GRANDE)
 
-        criar_titulo(conteudo, "Corre dos Motocas").pack(anchor="w")
+        criar_titulo(conteudo, "Corre dos Motocas").pack(anchor="w", pady=(0, 4))
         criar_subtitulo(conteudo, "Entre para continuar sua corrida.").pack(
-            anchor="w", pady=(0, styles.ESPACO_GRANDE)
+            anchor="w", pady=(0, 18)
         )
 
         self._campo_telefone = CampoTexto(
             conteudo, rotulo="Telefone", placeholder="16 99123-4567"
         )
-        self._campo_telefone.pack(fill="x", pady=(0, styles.ESPACO_MEDIO))
+        self._campo_telefone.pack(fill="x", pady=(5, 10))
         aplicar_mascara_telefone(self._campo_telefone.entry)
 
         self._campo_senha = CampoTexto(
             conteudo, rotulo="Senha", placeholder="Sua senha", mostrar_como_senha=True
         )
-        self._campo_senha.pack(fill="x")
+        self._campo_senha.pack(fill="x", pady=(5, 10))
         # Permite logar apertando Enter no campo de senha, sem precisar
         # clicar no botão — pequeno detalhe que melhora bastante a UX.
         self._campo_senha.entry.bind("<Return>", lambda _evento: self._tratar_login())
 
         self._mensagem_status = criar_mensagem_status(conteudo)
-        self._mensagem_status.pack(fill="x", pady=(styles.ESPACO_MEDIO, 0))
+        self._mensagem_status.pack(fill="x", pady=(0, 6))
 
+        # height=45 garante um tamanho mínimo visível para o botão
+        # primário, independente de quanto espaço sobrar no card —
+        # antes, era justamente esse botão que sofria o esmagamento.
         botao_entrar = criar_botao_primario(conteudo, "Entrar", self._tratar_login)
-        botao_entrar.pack(fill="x", pady=(styles.ESPACO_MEDIO, styles.ESPACO_PEQUENO))
+        botao_entrar.configure(height=45)
+        botao_entrar.pack(fill="x", pady=(5, 10))
 
         botao_cadastro = criar_botao_link(
             conteudo, "Não tem conta? Cadastre-se", self._ao_ir_para_cadastro
         )
-        botao_cadastro.pack()
+        botao_cadastro.pack(pady=(0, 2))
 
     def _tratar_login(self) -> None:
         """
